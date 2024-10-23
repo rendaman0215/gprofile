@@ -7,53 +7,48 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+import { createConnectTransport } from "@connectrpc/connect-web";
+import { createClient, createPromiseClient } from "@connectrpc/connect";
+import { GirlService } from "@buf/rendaman_personal-schema.connectrpc_es/girl/v1/girl_connect";
+
 const cupSizeList = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"] as const;
 type CupSize = (typeof cupSizeList)[number];
 
 export function GirlForm() {
-  const registerGirl = async (event: React.FormEvent) => {
-    event.preventDefault();
-
-    // cupSize is a neccessary field
-    if (cupSize === null) {
-      alert("Please select a cup size");
-      return;
-    }
-
-    // name is a neccessary field
-    if (!firstName || !lastName) {
-      alert("Please fill in the name fields");
-      return;
-    }
-
-    await fetch("http://localhost:8080/girl.v1.GirlService/Register", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        girl: {
-          name: {
-            firstname: firstName,
-            lastname: lastName,
-          },
-          age: age,
-          cup: cupSize,
-          hip: hipSize,
-          height: height,
-        },
-      }),
-    }).catch(() => {
-      alert("An error occurred while registering");
-    });
-  };
-
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [age, setAge] = useState(25);
   const [height, setHeight] = useState(160);
   const [hipSize, setHipSize] = useState(90);
   const [cupSize, setCupSize] = useState<CupSize | null>(null);
+
+  // エンドポイントを指定
+  const transport = createConnectTransport({
+    baseUrl: "http://localhost:8080",
+  });
+
+  // 呼び出すRPCと接続先からクライアントを作成
+  const client = createClient(GirlService, transport);
+
+  const registerGirl = async () => {
+    await client
+      .register({
+        girl: {
+          name: {
+            firstname: firstName,
+            lastname: lastName,
+          },
+          age: age,
+          cup: cupSize?.toString(),
+          hip: hipSize,
+          height: height,
+        },
+      })
+      .catch((e) => {
+        console.error(e);
+        alert("An error occurred while registering");
+      });
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-r from-yellow-300 via-pink-400 to-purple-500 flex flex-col items-center justify-center p-4">
